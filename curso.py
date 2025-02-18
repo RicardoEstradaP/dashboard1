@@ -4,12 +4,19 @@ import matplotlib.pyplot as plt
 import requests
 from io import StringIO
 
-# Cargar los datos desde el archivo CSV en GitHub
-@st.cache
+# Cargar los datos desde el archivo CSV
+@st.cache_data
 def cargar_datos():
-    url = "https://github.com/tu_usuario/tu_repositorio/raw/main/integridad.csv"  # Cambia esto con la URL de tu archivo en GitHub
+    url = "https://github.com/tu_usuario/tu_repositorio/raw/main/integridad.csv"  # Cambia esto con la URL correcta
     response = requests.get(url)
-    df = pd.read_csv(StringIO(response.text))  # Leemos el contenido CSV desde la respuesta
+    
+    try:
+        # Intentamos leer el archivo CSV con la codificación UTF-8
+        df = pd.read_csv(StringIO(response.text), encoding='utf-8')
+    except UnicodeDecodeError:
+        # Si falla, intentamos con ISO-8859-1
+        df = pd.read_csv(StringIO(response.text), encoding='ISO-8859-1')
+    
     return df
 
 # Filtrar los datos según los valores seleccionados en los filtros
