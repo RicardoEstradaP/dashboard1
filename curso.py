@@ -10,36 +10,40 @@ def cargar_datos():
     url = "https://github.com/tu_usuario/tu_repositorio/raw/main/integridad.csv"  # Cambia esto con la URL correcta
     response = requests.get(url)
     
+    if response.status_code != 200:
+        st.error("Error al descargar el archivo CSV.")
+        return pd.DataFrame()  # Retorna un DataFrame vacío si hay un error
+
     try:
-        # Intentamos leer el archivo CSV con la codificación UTF-8 y especificando el delimitador si es necesario
+        # Intentamos leer el archivo CSV con la codificación UTF-8 y delimitador por coma
         df = pd.read_csv(StringIO(response.text), encoding='utf-8', delimiter=',')
-    except UnicodeDecodeError:
-        # Si falla, intentamos con ISO-8859-1
-        df = pd.read_csv(StringIO(response.text), encoding='ISO-8859-1', delimiter=',')
-    except pd.errors.ParserError:
-        # Si aún hay problemas, intentamos con un delimitador diferente (ejemplo: punto y coma)
-        df = pd.read_csv(StringIO(response.text), encoding='utf-8', delimiter=';')
+    except Exception as e:
+        st.error(f"Error al leer el archivo CSV: {e}")
+        return pd.DataFrame()  # Retorna un DataFrame vacío en caso de error
     
     return df
 
 # Filtrar los datos según los valores seleccionados en los filtros
 def filtrar_datos(uni_seleccionada, licenciatura_seleccionada, df):
-    df_filtrado = df[df['Universidad'] == uni_seleccionada]
-    df_filtrado = df_filtrado[df_filtrado['Licenciatura'] == licenciatura_seleccionada]
+    df_filtrado = df[(df['Universidad'] == uni_seleccionada) & 
+                     (df['Licenciatura'] == licenciatura_seleccionada)]
     return df_filtrado
 
 # Crear la gráfica
 def crear_grafica(df_filtrado):
+    if df_filtrado.empty:
+        return None
+
     # Contar los valores de Integridad Académica
     integridad_count = df_filtrado['Integridad Académica'].value_counts()
-    
+
     # Crear la gráfica de barras
     plt.figure(figsize=(10,6))
     integridad_count.plot(kind='bar', color='skyblue')
     plt.title('Integridad Académica por Licenciatura')
     plt.xlabel('Nivel de Integridad Académica')
     plt.ylabel('Cantidad de Estudiantes')
-    
+
     # Guardar la gráfica como imagen
     grafica_path = '/tmp/grafica_integridad.png'
     plt.savefig(grafica_path)
@@ -51,6 +55,10 @@ def crear_grafica(df_filtrado):
 def app():
     # Cargar los datos
     df = cargar_datos()
+
+    if df.empty:
+        st.write("No se pudo cargar ningún dato.")
+        return
 
     # Título del dashboard
     st.title('Dashboard de Integridad Académica')
