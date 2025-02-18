@@ -11,11 +11,14 @@ def cargar_datos():
     response = requests.get(url)
     
     try:
-        # Intentamos leer el archivo CSV con la codificación UTF-8
-        df = pd.read_csv(StringIO(response.text), encoding='utf-8')
+        # Intentamos leer el archivo CSV con la codificación UTF-8 y especificando el delimitador si es necesario
+        df = pd.read_csv(StringIO(response.text), encoding='utf-8', delimiter=',')
     except UnicodeDecodeError:
         # Si falla, intentamos con ISO-8859-1
-        df = pd.read_csv(StringIO(response.text), encoding='ISO-8859-1')
+        df = pd.read_csv(StringIO(response.text), encoding='ISO-8859-1', delimiter=',')
+    except pd.errors.ParserError:
+        # Si aún hay problemas, intentamos con un delimitador diferente (ejemplo: punto y coma)
+        df = pd.read_csv(StringIO(response.text), encoding='utf-8', delimiter=';')
     
     return df
 
