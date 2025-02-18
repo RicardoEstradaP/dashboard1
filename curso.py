@@ -1,74 +1,77 @@
 import pandas as pd
+import streamlit as st
 import matplotlib.pyplot as plt
-import os
-import seaborn as sns  # Para mejorar la paleta de colores
-import matplotlib.colors as mcolors
-import numpy as np
 
-# Ruta del archivo en tu Mac
-archivo = "/Users/ricardoestrada/Archivos Python/curso/prueba.xlsx"
+# Cargar los datos desde el archivo Excel
+@st.cache
+def cargar_datos():
+    return pd.read_excel('/Users/ricardoestrada/Archivos Python/curso/integridad.xlsx')
 
-# Cargar datos
-df = pd.read_excel(archivo)
+# Filtrar los datos según los valores seleccionados en los filtros
+def filtrar_datos(uni_seleccionada, licenciatura_seleccionada, df):
+    df_filtrado = df[df['Universidad'] == uni_seleccionada]
+    df_filtrado = df_filtrado[df_filtrado['Licenciatura'] == licenciatura_seleccionada]
+    return df_filtrado
 
-# Calcular el promedio de cada caso (fila), considerando solo las columnas B a E
-df["Promedio Caso"] = df.iloc[:, 1:5].mean(axis=1)
+# Crear la gráfica
+def crear_grafica(df_filtrado):
+    # Contar los valores de Integridad Académica
+    integridad_count = df_filtrado['Integridad Académica'].value_counts()
+    
+    # Crear la gráfica de barras
+    plt.figure(figsize=(10,6))
+    integridad_count.plot(kind='bar', color='skyblue')
+    plt.title('Integridad Académica por Licenciatura')
+    plt.xlabel('Nivel de Integridad Académica')
+    plt.ylabel('Cantidad de Estudiantes')
+    
+    # Guardar la gráfica como imagen
+    grafica_path = '/tmp/grafica_integridad.png'
+    plt.savefig(grafica_path)
+    plt.close()
+    
+    return grafica_path
 
-# Calcular el promedio final de cada institución (promedio de los casos)
-promedio_por_institucion = df.groupby(df.columns[0])["Promedio Caso"].mean().reset_index()
-promedio_por_institucion.rename(columns={"Promedio Caso": "Promedio Final Institución"}, inplace=True)
+# Crear la interfaz de usuario en Streamlit
+def app():
+    # Cargar los datos
+    df = cargar_datos()
 
-# Calcular el promedio de cada pregunta por institución
-promedio_preguntas = df.groupby(df.columns[0]).mean(numeric_only=True).reset_index()
+    # Título del dashboard
+    st.title('Dashboard de Integridad Académica')
 
-# Unir ambos resultados en un solo DataFrame
-resultado_final = pd.merge(promedio_preguntas, promedio_por_institucion, on=df.columns[0])
+    # Filtros de universidad
+    universidades = df['Universidad'].unique()
+    universidad_seleccionada = st.selectbox('Selecciona una universidad', universidades)
 
-# Definir la ruta de salida en el escritorio
-ruta_csv = os.path.expanduser("~/Desktop/promedios_instituciones.csv")
+    # Filtrar según la universidad seleccionada
+    df_filtrado_universidad = df[df['Universidad'] == universidad_seleccionada]
 
-# Guardar como CSV
-resultado_final.to_csv(ruta_csv, index=False, encoding="utf-8")
+    # Filtros de licenciatura (dependiendo de la universidad seleccionada)
+    licenciaturas = df_filtrado_universidad['Licenciatura'].unique()
+    licenciatura_seleccionada = st.selectbox('Selecciona una licenciatura', licenciaturas)
 
-# 📊 Gráfico de barras del promedio final por institución (ordenado de menor a mayor)
-promedio_por_institucion = promedio_por_institucion.sort_values(by="Promedio Final Institución")
+    # Filtrar los datos según ambos filtros seleccionados
+    df_filtrado = filtrar_datos(universidad_seleccionada, licenciatura_seleccionada, df)
 
-# Crear un mapa de colores personalizado en degradado azul
-cmap = mcolors.LinearSegmentedColormap.from_list("degradado_azul", ["#ffffff", "#192E4C"])
+    # Si hay datos filtrados, generar la gráfica
+    if not df_filtrado.empty:
+        # Crear la gráfica
+        grafica_path = crear_grafica(df_filtrado)
+        
+        # Mostrar la gráfica
+        st.image(grafica_path, caption='Gráfica de Integridad Académica', use_column_width=True)
+        
+        # Botón para descargar la gráfica
+        with open(grafica_path, 'rb') as file:
+            st.download_button(
+                label="Descargar Gráfica",
+                data=file,
+                file_name="grafica_integridad.png",
+                mime="image/png"
+            )
+    else:
+        st.write('No hay datos para mostrar con los filtros seleccionados.')
 
-# Obtener una secuencia de colores del mapa de colores
-n_barras = len(promedio_por_institucion)
-colores = [cmap(i / n_barras) for i in range(n_barras)]
-
-# Calcular el promedio general
-promedio_general = promedio_por_institucion["Promedio Final Institución"].mean()
-
-plt.figure(figsize=(10, 6))
-barplot = sns.barplot(
-    x="Promedio Final Institución",
-    y=promedio_por_institucion[df.columns[0]],
-    data=promedio_por_institucion,
-    palette=colores  # Usar los colores del degradado
-)
-
-# Agregar una línea punteada para el promedio general
-plt.axvline(promedio_general, color="#C89211", linestyle="--", linewidth=2, label=f"Promedio General: {promedio_general:.2f}")
-
-# Personalizar etiquetas y título
-plt.xlabel("Promedio Final")
-plt.ylabel("Instituciones")
-plt.title("Promedio Final por Institución (Ordenado)")
-plt.grid(axis="x", linestyle="--", alpha=0.7)
-
-# Mostrar leyenda
-plt.legend()
-
-# Definir la ruta para guardar el gráfico
-ruta_grafico = os.path.expanduser("~/Desktop/promedio_instituciones.png")
-plt.savefig(ruta_grafico, bbox_inches="tight")
-
-# Mostrar gráfico
-plt.show()
-
-print(f"Archivo CSV guardado en: {ruta_csv}")
-print(f"Gráfico guardado en: {ruta_grafico}")
+if __name__ == "__main__":
+    app()
