@@ -7,7 +7,8 @@ from io import StringIO
 # Cargar los datos desde el archivo CSV
 @st.cache_data
 def cargar_datos():
-    https://raw.githubusercontent.com/RicardoEstradaP/dashboard1/main/integridad.csv  # Cambia esto con la URL correcta
+   # Cambia esta línea con la URL del archivo raw correcto de GitHub
+url = "https://raw.githubusercontent.com/RicardoEstradaP/dashboard1/main/integridad.csv"
     response = requests.get(url)
     
     # Verificar si la descarga fue exitosa
