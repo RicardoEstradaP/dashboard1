@@ -1,9 +1,16 @@
 import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
+import requests
+from io import StringIO
 
-# Cargar los datos desde el archivo Excel
-file_path = "integridad.csv"
+# Cargar los datos desde el archivo CSV en GitHub
+@st.cache
+def cargar_datos():
+    url = "https://github.com/tu_usuario/tu_repositorio/raw/main/integridad.csv"  # Cambia esto con la URL de tu archivo en GitHub
+    response = requests.get(url)
+    df = pd.read_csv(StringIO(response.text))  # Leemos el contenido CSV desde la respuesta
+    return df
 
 # Filtrar los datos según los valores seleccionados en los filtros
 def filtrar_datos(uni_seleccionada, licenciatura_seleccionada, df):
