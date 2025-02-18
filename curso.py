@@ -3,9 +3,7 @@ import streamlit as st
 import matplotlib.pyplot as plt
 
 # Cargar los datos desde el archivo Excel
-@st.cache
-def cargar_datos():
-    return pd.read_excel('/Users/ricardoestrada/Archivos Python/curso/integridad.xlsx')
+file_path = "integridad.csv"
 
 # Filtrar los datos según los valores seleccionados en los filtros
 def filtrar_datos(uni_seleccionada, licenciatura_seleccionada, df):
